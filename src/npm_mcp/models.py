@@ -1,9 +1,17 @@
 """Pydantic models for NPM API responses."""
 
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
+
+
+def _drop_empty(v: Any) -> Any:
+    """NPM can return null or empty entries in list fields; drop them."""
+    return [d for d in (v or []) if d]
+
+
+CleanList = Annotated[list[str], BeforeValidator(_drop_empty)]
 
 
 class TokenResponse(BaseModel):
@@ -55,7 +63,7 @@ class Certificate(BaseModel):
     owner_user_id: int | None = None
     provider: str = ""
     nice_name: str = ""
-    domain_names: list[str] = Field(default_factory=list)
+    domain_names: CleanList = Field(default_factory=list)
     expires_on: datetime | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
 
@@ -77,7 +85,7 @@ class ProxyHost(BaseModel):
     created_on: datetime
     modified_on: datetime
     owner_user_id: int
-    domain_names: list[str]
+    domain_names: CleanList
     forward_host: str
     forward_port: int
     forward_scheme: str = "http"
@@ -103,7 +111,7 @@ class ProxyHostSummary(BaseModel):
     """Summarized proxy host for list responses."""
 
     id: int
-    domain_names: list[str]
+    domain_names: CleanList
     forward_host: str
     forward_port: int
     forward_scheme: str
